@@ -1,0 +1,225 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// TENANTS: Empresas/clientes que usan el SaaS
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  logo      String?
+  subdomain String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  users     User[]
+  branches  Branch[]
+  portals   Portal[]
+  campaigns Campaign[]
+  plans     TenantPlan[]
+
+  @@map("tenants")
+}
+
+// USERS: Usuarios administrativos de cada tenant
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      UserRole @default(USER)
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  USER
+}
+
+// PLANS: Planes de suscripción disponibles
+model Plan {
+  id          String  @id @default(cuid())
+  name        String
+  description String
+  price       Decimal @db.Decimal(10, 2)
+  maxBranches Int
+  maxPortals  Int
+  maxUsers    Int
+  features    Json    // Características como JSON
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  tenants TenantPlan[]
+
+  @@map("plans")
+}
+
+// TENANT_PLANS: Relación entre tenants y planes
+model TenantPlan {
+  id         String   @id @default(cuid())
+  tenantId   String
+  planId     String
+  startsAt   DateTime @default(now())
+  endsAt     DateTime?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relaciones
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, planId])
+  @@map("tenant_plans")
+}
+
+// BRANCHES: Sucursales físicas de cada tenant
+model Branch {
+  id           String   @id @default(cuid())
+  name         String
+  address      String?
+  city         String?
+  country      String?
+  coordinates Json?    // {lat, lng}
+  phone        String?
+  email        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  portals  Portal[]
+
+  @@map("branches")
+}
+
+// PORTALS: Portales cautivos configurados
+model Portal {
+  id           String     @id @default(cuid())
+  name         String
+  url          String     @unique
+  ssid         String?
+  mikrotikIp   String?
+  mikrotikUser String?
+  mikrotikPass String?
+  theme        Json?      // Configuración de tema
+  settings     Json?      // Configuración adicionales
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Relaciones
+  tenantId  String
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branchId  String?
+  branch    Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  visitors  Visitor[]
+  campaigns Campaign[]
+
+  @@map("portals")
+}
+
+// VISITORS: Visitantes que se conectan a los portales
+model Visitor {
+  id             String   @id @default(cuid())
+  macAddress     String   @unique
+  ipAddress      String?
+  hostname       String?
+  userAgent      String?
+  firstSeen      DateTime @default(now())
+  lastSeen       DateTime @default(now())
+  totalSessions  Int      @default(0)
+  totalDuration  Int      @default(0) // segundos
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relaciones
+  portalId String
+  portal   Portal @relation(fields: [portalId], references: [id], onDelete: Cascade)
+
+  @@map("visitors")
+}
+
+// CAMPAIGNS: Campañas publicitarias
+model Campaign {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  type        CampaignType @default(BANNER)
+  content     Json         // Contenido de la campaña
+  settings    Json?        // Configuración de visualización
+  startDate   DateTime
+  endDate     DateTime?
+  isActive    Boolean      @default(true)
+  priority    Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relaciones
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  portalId String?
+  portal   Portal? @relation(fields: [portalId], references: [id], onDelete: SetNull)
+
+  @@map("campaigns")
+}
+
+enum CampaignType {
+  BANNER
+  VIDEO
+  POPUP
+  INTERSTITIAL
+}
+
+// SUBSCRIPTIONS: Historial de suscripciones y pagos
+model Subscription {
+  id          String           @id @default(cuid())
+  tenantId    String
+  planId      String
+  status      SubscriptionStatus @default(ACTIVE)
+  startsAt    DateTime         @default(now())
+  endsAt      DateTime?
+  amount      Decimal          @db.Decimal(10, 2)
+  currency    String           @default("USD")
+  paymentMethod String?
+  paymentId   String?          // ID del pago externo
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PENDING
+}
