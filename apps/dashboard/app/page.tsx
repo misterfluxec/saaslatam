@@ -26,33 +26,38 @@ export default function Home() {
           className={styles.logo}
           srcLight="turborepo-dark.svg"
           srcDark="turborepo-light.svg"
-          alt="Turborepo logo"
+          alt="HotSpot SaaS Logo"
           width={180}
           height={38}
           priority
         />
+        <h1>HotSpot SaaS Dashboard</h1>
+        <p>Portal Cautivo Multi-Tenant para Gestión de Redes WiFi</p>
+        
         <ol>
           <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
+            Get started by editing <code>apps/dashboard/app/page.tsx</code>
           </li>
-          <li>Save and see your changes instantly.</li>
+          <li>Configure your database connection with DATABASE_URL</li>
+          <li>Run Prisma migrations to setup the database schema</li>
+          <li>Start building your multi-tenant WiFi management platform</li>
         </ol>
 
         <div className={styles.ctas}>
           <a
             className={styles.primary}
-            href="https://vercel.com/new/clone?demo-description=Learn+to+implement+a+monorepo+with+a+two+Next.js+sites+that+has+installed+three+local+packages.&demo-image=%2F%2Fimages.ctfassets.net%2Fe5382hct74si%2F4K8ZISWAzJ8X1504ca0zmC%2F0b21a1c6246add355e55816278ef54bc%2FBasic.png&demo-title=Monorepo+with+Turborepo&demo-url=https%3A%2F%2Fexamples-basic-web.vercel.sh%2F&from=templates&project-name=Monorepo+with+Turborepo&repository-name=monorepo-turborepo&repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fturborepo%2Ftree%2Fmain%2Fexamples%2Fbasic&root-directory=apps%2Fdocs&skippable-integrations=1&teamSlug=vercel&utm_source=create-turbo"
+            href="https://github.com/misterfluxec/saaslatam"
             target="_blank"
             rel="noopener noreferrer"
           >
             <Image
               className={styles.logo}
               src="/vercel.svg"
-              alt="Vercel logomark"
+              alt="GitHub logomark"
               width={20}
               height={20}
             />
-            Deploy now
+            View on GitHub
           </a>
           <a
             href="https://turborepo.dev/docs?utm_source"
@@ -60,16 +65,16 @@ export default function Home() {
             rel="noopener noreferrer"
             className={styles.secondary}
           >
-            Read our docs
+            Read Turborepo docs
           </a>
         </div>
-        <Button appName="web" className={styles.secondary}>
-          Open alert
+        <Button appName="dashboard" className={styles.secondary}>
+          Test Dashboard
         </Button>
       </main>
       <footer className={styles.footer}>
         <a
-          href="https://vercel.com/templates?search=turborepo&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
+          href="https://github.com/misterfluxec/saaslatam"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -80,7 +85,7 @@ export default function Home() {
             width={16}
             height={16}
           />
-          Examples
+          Source Code
         </a>
         <a
           href="https://turborepo.dev?utm_source=create-turbo"
@@ -94,7 +99,7 @@ export default function Home() {
             width={16}
             height={16}
           />
-          Go to turborepo.dev →
+          Powered by Turborepo →
         </a>
       </footer>
     </div>
