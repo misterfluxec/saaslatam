@@ -16,6 +16,11 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - COOLIFY_URL=https://app.labodegaec.com
       - COOLIFY_FQDN=app.labodegaec.com
+    command: >
+      sh -c "
+        npm run build &&
+        npm start
+      "
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.hotspot-dashboard.rule=Host(`app.labodegaec.com`)"
