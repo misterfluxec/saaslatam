@@ -133,3 +133,36 @@ model Analytics {
   
   @@index([portalId, timestamp])
 }
+
+// ✅ FREERADIUS MODELOS BÁSICOS
+model RadCheck {
+  id        Int      @id @default(autoincrement())
+  username  String   @db.VarChar(64)
+  attribute String   @db.VarChar(64)
+  op        String   @db.Char(2)
+  value     String   @db.VarChar(253)
+  
+  @@map("radcheck")
+  @@index([username])
+}
+
+model RadReply {
+  id        Int      @id @default(autoincrement())
+  username  String   @db.VarChar(64)
+  attribute String   @db.VarChar(64)
+  op        String   @db.Char(2)
+  value     String   @db.VarChar(253)
+  
+  @@map("radreply")
+  @@index([username])
+}
+
+model RadUserGroup {
+  id        Int      @id @default(autoincrement())
+  username  String   @db.VarChar(64)
+  groupname String   @db.VarChar(64)
+  priority  Int      @default(1)
+  
+  @@map("radusergroup")
+  @@index([username])
+}
