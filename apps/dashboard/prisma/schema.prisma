@@ -1,6 +1,5 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -8,66 +7,129 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model radacct {
-  radacctid           BigInt    @id @default(autoincrement())
-  acctsessionid       String    @db.VarChar(64)
-  username            String    @db.VarChar(64)
-  groupname           String?   @db.VarChar(64)
-  realm               String?   @db.VarChar(64)
-  nasipaddress        String    @db.Inet
-  nasportid           String?   @db.VarChar(15)
-  nasporttype         String?   @db.VarChar(32)
-  acctstarttime       DateTime? @db.Timestamptz(6)
-  acctstoptime        DateTime? @db.Timestamptz(6)
-  acctsessiontime     BigInt?   @default(0)
-  acctauthentic       String?   @db.VarChar(32)
-  connectinfo_start   String?   @db.VarChar(50)
-  connectinfo_stop    String?   @db.VarChar(50)
-  acctinputoctets     BigInt?   @default(0)
-  acctoutputoctets    BigInt?   @default(0)
-  calledstationid     String?   @db.VarChar(50)
-  callingstationid    String?   @db.VarChar(50)
-  acctterminatecause  String?   @db.VarChar(32)
-  servicetype         String?   @db.VarChar(32)
-  framedprotocol      String?   @db.VarChar(32)
-  framedipaddress     String?   @db.Inet
-  framedipv6address   String?   @db.Inet
-  framedipv6prefix    String?   @db.Inet
-  framedinterfaceid   String?   @db.VarChar(32)
-  delegatedipv6prefix String?   @db.Inet
+// ✅ TENANT: Raíz del multi-tenancy
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique // Para URLs: app.saaslatam.com/[slug]
+  plan        String   @default("free") // free, pro, enterprise
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relaciones
+  users       User[]
+  branches    Branch[]
+  campaigns   Campaign[]
+  portals     Portal[]
+  
+  @@index([slug])
 }
 
-model radcheck {
-  id        Int    @id @default(autoincrement())
-  username  String @db.VarChar(64)
-  attribute String @db.VarChar(64)
-  op        String @db.VarChar(2)
-  value     String @db.VarChar(253)
+// ✅ USER: Roles con aislamiento por tenant
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // Hash con bcrypt
+  role      Role     @default(CLIENT)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([email, tenantId]) // Mismo email puede existir en tenants distintos
+  @@index([tenantId])
 }
 
-model radclients {
-  id            Int     @id @default(autoincrement())
-  client_id     String  @unique @db.VarChar(64)
-  client_secret String  @db.VarChar(64)
-  shortname     String? @db.VarChar(64)
-  nastype       String? @default("other") @db.VarChar(64)
-  ports         Int?
-  secret        String  @db.VarChar(60)
-  server        String? @db.VarChar(64)
-  description   String?
+enum Role {
+  SUPERADMIN  // Plataforma global
+  TENANT      // Dueño del negocio
+  MARKETING   // Gestor de campañas
+  CLIENT      // Usuario final del portal cautivo
 }
 
-model radreply {
-  id        Int    @id @default(autoincrement())
-  username  String @db.VarChar(64)
-  attribute String @db.VarChar(64)
-  op        String @db.VarChar(2)
-  value     String @db.VarChar(253)
+// ✅ BRANCH: Sucursales multi-tenant
+model Branch {
+  id          String   @id @default(cuid())
+  name        String
+  location    String?
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  
+  portals     Portal[]
+  campaigns   Campaign[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([tenantId])
 }
 
-model radusergroup {
-  id        Int    @id @default(autoincrement())
-  username  String @db.VarChar(64)
-  groupname String @db.VarChar(64)
-  priority  Int?   @default(0)
+// ✅ CAMPAIGN: Motor de marketing con IA
+model Campaign {
+  id          String   @id @default(cuid())
+  name        String
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id])
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  
+  // Contenido generado o sugerido por IA
+  adCopy      String   // Texto del anuncio
+  imageUrl    String?  // Imagen generada por IA
+  targetAudience Json? // Criterios de segmentación
+  
+  // Métricas
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  
+  isActive    Boolean  @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([branchId, isActive])
+}
+
+// ✅ PORTAL: Configuración de portal cautivo por sucursal
+model Portal {
+  id            String   @id @default(cuid())
+  name          String
+  branchId      String
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  
+  // Configuración de branding (IA puede sugerir valores)
+  logoUrl       String?
+  primaryColor  String   @default("#3b82f6")
+  welcomeMsg    String?
+  
+  // Configuración técnica
+  ssid          String
+  radiusSecret  String   // Para FreeRADIUS
+  sessionTimeout Int     @default(3600)
+  
+  analytics     Analytics[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([branchId])
+}
+
+// ✅ ANALYTICS: Datos para el dashboard
+model Analytics {
+  id        String   @id @default(cuid())
+  portalId  String
+  portal    Portal   @relation(fields: [portalId], references: [id])
+  
+  metric    String   // "users", "sessions", "bandwidth"
+  value     Float
+  timestamp DateTime @default(now())
+  
+  @@index([portalId, timestamp])
 }
