@@ -3,17 +3,19 @@ version: '3.8'
 services:
   # Dashboard HotSpot SaaS - Next.js
   dashboard:
-    image: mx126kvohqtqiknxu0znm4lk:e96b88dfc51b790ed3ae34993b6d8113e2885c90
+    image: mx126kvohqtqiknxu0znm4lk:56239507d99c2311332e744f51d53a1fd00b7f76
     container_name: hotspot-dashboard
     restart: unless-stopped
     networks:
-      - coolify
-      - hotspot-network
+      coolify:
+        ipv4_address: 10.0.1.100
+      hotspot-network:
+        ipv4_address: 172.20.0.100
     ports:
-      - "3000:80"
+      - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://hotspot_admin:hotspot_admin@10.0.1.2:5432/hotspot_db
       - COOLIFY_URL=https://app.labodegaec.com
       - COOLIFY_FQDN=app.labodegaec.com
     command: >
@@ -26,7 +28,7 @@ services:
       - "traefik.http.routers.hotspot-dashboard.rule=Host(`app.labodegaec.com`)"
       - "traefik.http.routers.hotspot-dashboard.entrypoints=websecure"
       - "traefik.http.routers.hotspot-dashboard.tls.certresolver=letsencrypt"
-      - "traefik.http.services.hotspot-dashboard.loadbalancer.server.port=80"
+      - "traefik.http.services.hotspot-dashboard.loadbalancer.server.port=3000"
       - "coolify.service.name=dashboard"
       - "coolify.service.type=web"
 
