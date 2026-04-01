@@ -1,56 +1,38 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ✅ Configuración standalone para producción
+  // CRÍTICO para Coolify/Docker: genera build autocontenido
   output: 'standalone',
   
-  // ✅ Configuración de imágenes optimizada (Next.js 16+)
+  // Optimizaciones de producción
+  productionBrowserSourceMaps: false,
+  compress: true,
+  reactStrictMode: true,
+  
+  // Permitir imágenes externas (logos de clientes multi-tenant)
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'app.labodegaec.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '',
-        pathname: '/**',
-      },
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http', hostname: '**' }
     ],
-    unoptimized: true,
   },
-  
-  // ✅ Configuración de environment variables
-  env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
-  },
-  
-  // ✅ Configuración de headers de seguridad
+
+  // Headers de seguridad empresarial
   async headers() {
     return [
       {
-        source: '/api/:path*',
+        source: '/(.*)',
         headers: [
-          { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
-        ],
-      },
-    ];
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' }
+        ]
+      }
+    ]
   },
-  
-  // ✅ Configuración de redirects (sin rewrites que causen bucles)
-  async redirects() {
-    return [
-      {
-        source: '/admin',
-        destination: '/dashboard',
-        permanent: true,
-      },
-    ];
-  },
-};
 
-export default nextConfig;
+  // ✅ ELIMINADO: rewrites a localhost (causaba error 508 Loop Detected)
+}
+
+export default nextConfig
